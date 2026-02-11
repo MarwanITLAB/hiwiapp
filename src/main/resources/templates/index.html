@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - HiwiApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">HiwiApp</a>
+        <div class="ms-auto" sec:authorize="isAuthenticated()">
+                <span class="navbar-text text-white me-3">
+                    Eingeloggt als: <strong sec:authentication="name">User</strong>
+                </span>
+            <form th:action="@{/logout}" method="post" class="d-inline">
+                <button type="submit" class="btn btn-outline-light btn-sm">Abmelden</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="p-5 mb-4 bg-white border rounded-3 shadow-sm">
+                <h1 class="display-5 fw-bold text-primary">Willkommen im Dashboard!</h1>
+                <p class="col-md-8 fs-4 text-muted">Hier findest du eine Übersicht deiner aktuellen Aufgaben und Termine.</p>
+                <hr class="my-4">
+
+                <h5>Deine Rollen-Berechtigungen:</h5>
+                <div class="badge bg-info text-dark p-2" sec:authentication="principal.authorities">
+                    [Rollen werden hier geladen]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4" sec:authorize="hasAnyRole('STUDENT', 'ADMIN')">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Stundenprotokolle</h5>
+                    <p class="card-text">Trage hier deine Arbeitszeiten ein oder schau dir deine Historie an.</p>
+                    <a href="#" class="btn btn-success btn-sm">Öffnen</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4" sec:authorize="hasAnyRole('BETREUER', 'ADMIN')">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">Hiwi-Verwaltung</h5>
+                    <p class="card-text">Hier kannst du eingereichte Stunden deiner Hiwis prüfen und freigeben.</p>
+                    <a href="#" class="btn btn-warning btn-sm">Prüfen</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4" sec:authorize="hasRole('ADMIN')">
+            <div class="card h-100 shadow-sm border-danger">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">System-Einstellungen</h5>
+                    <p class="card-text">Verwalte Benutzerkonten, Rollen und globale Projekteinstellungen.</p>
+                    <a th:href="@{/admin/users}" class="btn btn-danger btn-sm">Verwalten</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

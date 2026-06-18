@@ -1,12 +1,23 @@
-package de.hiwiapp.hiwiapp.repository;
+package de.hiwiapp.repository;
 
-import de.hiwiapp.hiwiapp.model.User;
+import de.hiwiapp.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    // Diese Methode brauchen wir später für den Login:
+
+    // Diese Methode ist wichtig, da du sie in deiner
+    // HiwiappApplication (findByUsername) aufrufst!
     Optional<User> findByUsername(String username);
+
+    boolean existsByUsername(String username);
+
+
+
+
+
+
+
 }

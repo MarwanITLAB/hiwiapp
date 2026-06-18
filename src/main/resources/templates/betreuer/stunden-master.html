@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Stunden-Master | Betreuer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
+        .navbar-custom { background-color: #212529; }
+        .master-container { padding: 30px; max-width: 1400px; margin: auto; }
+        .student-card {
+            background: white;
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 2px solid #f8f9fa;
+            padding: 15px 25px;
+        }
+        .table-excel { font-size: 0.9rem; }
+        .table-excel thead { background-color: #f8f9fa; }
+        .num-font { font-family: 'Consolas', monospace; }
+        .status-negativ { color: #dc3545; font-weight: bold; }
+        .status-positiv { color: #198754; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark navbar-custom px-4">
+    <span class="navbar-brand fw-bold">HIWI<span class="text-info">APP</span> | Betreuer-Bereich</span>
+    <a th:href="@{/betreuer/dashboard}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+    </a>
+</nav>
+
+<div class="master-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark">Gesamtübersicht aller Studenten</h2>
+        <div th:if="${param.success}" class="alert alert-success py-1 px-3 mb-0">
+            <i class="bi bi-check-circle me-1"></i> Änderungen erfolgreich gespeichert!
+        </div>
+    </div>
+
+    <!-- Iteration über die Liste der Studenten (masterListe) -->
+    <div th:each="item : ${masterListe}" class="student-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-primary mb-1">Student</span>
+                <h4 class="mb-0 fw-bold" th:text="${item.student.vorname + ' ' + item.student.nachname}">Max Mustermann</h4>
+            </div>
+
+            <!-- DER ZENTRALE BEARBEITEN-BUTTON -->
+            <a th:href="@{/betreuer/edit-student/{id}(id=${item.student.id})}" class="btn btn-warning shadow-sm">
+                <i class="bi bi-pencil-square me-2"></i>Stunden & Soll korrigieren
+            </a>
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-excel align-middle">
+                    <thead>
+                    <tr>
+                        <th>Monat</th>
+                        <th class="text-end">Soll (h)</th>
+                        <th class="text-end">Ist (h)</th>
+                        <th class="text-end">Ist (x 1,08)</th>
+                        <th class="text-end">Übertrag (kumuliert)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="zeile : ${item.daten.monate}">
+                        <td class="fw-bold" th:text="${zeile.monatName}">Januar</td>
+                        <td class="text-end num-font" th:text="${#numbers.formatDecimal(zeile.summeSoll, 1, 2, 'COMMA')}">0,00</td>
+                        <td class="text-end num-font" th:text="${#numbers.formatDecimal(zeile.summeIst, 1, 2, 'COMMA')}">0,00</td>
+                        <td class="text-end num-font" th:text="${#numbers.formatDecimal(zeile.istMitFaktor, 1, 2, 'COMMA')}">0,00</td>
+                        <td class="text-end num-font"
+                            th:classappend="${zeile.uebertrag < 0} ? 'status-negativ' : 'status-positiv'"
+                            th:text="${zeile.uebertragFormatiert}">0,00</td>
+                    </tr>
+                    </tbody>
+                    <tfoot class="table-light fw-bold border-top-2">
+                    <tr>
+                        <td>Jahresabschluss</td>
+                        <td class="text-end num-font" th:text="${#numbers.formatDecimal(item.daten.gesamtSoll, 1, 2, 'COMMA')}">0,00</td>
+                        <td class="text-end">---</td>
+                        <td class="text-end num-font" th:text="${#numbers.formatDecimal(item.daten.gesamtIstMitFaktor, 1, 2, 'COMMA')}">0,00</td>
+                        <td class="text-end num-font"
+                            th:classappend="${(item.daten.gesamtIstMitFaktor - item.daten.gesamtSoll) < 0} ? 'status-negativ' : 'status-positiv'"
+                            th:text="${#numbers.formatDecimal(item.daten.gesamtIstMitFaktor - item.daten.gesamtSoll, 1, 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

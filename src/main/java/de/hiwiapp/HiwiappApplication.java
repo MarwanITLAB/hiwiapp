@@ -1,8 +1,8 @@
-package de.hiwiapp.hiwiapp;
+package de.hiwiapp;
 
-import de.hiwiapp.hiwiapp.model.Role;
-import de.hiwiapp.hiwiapp.model.User;
-import de.hiwiapp.hiwiapp.repository.UserRepository;
+import de.hiwiapp.model.Role;
+import de.hiwiapp.model.User;
+import de.hiwiapp.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,31 +19,43 @@ public class HiwiappApplication {
 	@Bean
 	CommandLineRunner initDatabase(UserRepository repo, PasswordEncoder encoder) {
 		return args -> {
-			if (repo.count() == 0) {
-				// Admin erstellen
+			// Admin erstellen
+			if (repo.findByUsername("admin").isEmpty()) {
 				User admin = new User();
 				admin.setUsername("admin");
 				admin.setPassword(encoder.encode("123"));
-				admin.setRole(Role.ADMIN); // <-- ENUM verwenden
+				admin.setRole(Role.ADMIN);
 				repo.save(admin);
+			}
 
-				// Betreuer erstellen
+			if (repo.findByUsername("betreuer").isEmpty()) {
+
 				User betreuer = new User();
 				betreuer.setUsername("betreuer");
 				betreuer.setPassword(encoder.encode("123"));
-				betreuer.setRole(Role.BETREUER); // <-- ENUM
+				betreuer.setRole(Role.BETREUER);
+				betreuer.setVorname("Bernd");      // WICHTIG
+				betreuer.setNachname("Betreuer");  // WICHTIG
 				repo.save(betreuer);
 
-				// Student erstellen
+			}
+
+			// Student erstellen (mit Excel-Werten)
+			if (repo.findByUsername("student").isEmpty()) {
 				User student = new User();
 				student.setUsername("student");
 				student.setPassword(encoder.encode("123"));
-				student.setRole(Role.STUDENT); // <-- ENUM
+				student.setRole(Role.STUDENT);
+				student.setSollStunden(30.0); // EXCEL SOLL-WERT
+				student.setVorname("Max");
+				student.setNachname("Mustermann");
 				repo.save(student);
+				System.out.println("Test-Student angelegt mit 30h Soll.");
 
-				System.out.println("Datenbank initialisiert: admin, betreuer, student (PW: 123)");
 			}
+
+
+
 		};
 	}
-
 }

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Jahres-Konto | HiwiApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --excel-border: #dee2e6;
+            --excel-bg: #f8f9fa;
+            --accent-color: #0d6efd;
+        }
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        .navbar-custom { background-color: #212529; }
+        .main-container { padding: 30px 15px; max-width: 1150px; margin: auto; }
+        .content-card {
+            background: white;
+            border: 1px solid var(--excel-border);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .excel-table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        .excel-table th {
+            background-color: var(--excel-bg);
+            border: 1px solid var(--excel-border);
+            padding: 12px 8px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #666;
+            text-align: center;
+        }
+        .excel-table td { border: 1px solid var(--excel-border); padding: 0; vertical-align: middle; }
+
+        .num-cell { text-align: right; padding: 12px; font-family: 'Consolas', monospace; font-size: 0.95rem; }
+        .col-monat { background-color: var(--excel-bg); font-weight: 600; padding-left: 30px; width: 150px; }
+
+        .excel-input {
+            width: 100%;
+            height: 48px;
+            border: none;
+            padding: 10px 15px;
+            text-align: right;
+            background-color: #ffffcc;
+            font-family: 'Consolas', monospace;
+            font-weight: bold;
+            outline: none;
+            transition: background-color 0.2s;
+        }
+        .excel-input-soll { background-color: #e3f2fd; }
+        .excel-input:focus {
+            background-color: #fff;
+            box-shadow: inset 0 0 0 2px var(--accent-color);
+        }
+
+        .status-positiv { color: #198754; font-weight: bold; }
+        .status-negativ { color: #dc3545; font-weight: bold; }
+        .btn-save { border-radius: 6px; font-weight: 600; letter-spacing: 0.5px; }
+
+        .btn-detail {
+            transition: all 0.2s;
+            border-radius: 8px;
+        }
+        .btn-detail:hover {
+            background-color: #e9ecef;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark navbar-custom px-4 sticky-top text-white">
+    <div class="container-fluid">
+        <span class="navbar-brand fw-bold">HIWI<span class="text-info">APP</span> | Jahres-Konto</span>
+
+        <a th:href="@{${isBetreuer ? '/betreuer/stunden' : '/student/dashboard'}}" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left me-2"></i>
+            <span th:text="${isBetreuer} ? 'Zurück zum Master' : 'Dashboard'">Dashboard</span>
+        </a>
+    </div>
+</nav>
+
+<main class="main-container">
+    <div class="content-card">
+
+        <form th:action="@{${isBetreuer ? '/betreuer/save-student/' + studentId : '/student/speichern'}}"
+              th:object="${stundenForm}" method="post">
+
+            <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-3">
+                <div>
+                    <h3 class="fw-bold mb-1" th:text="${isBetreuer} ? 'Korrekturmodus (Admin)' : 'Jahres-Stundenübersicht'">Jahres-Stundenübersicht</h3>
+                    <p class="text-muted mb-0 small">
+                        <i class="bi bi-info-circle me-1 text-primary"></i>
+                        Verwalte hier deine monatlichen Summen und klicke auf die Lupe für die Tages-Details.
+                    </p>
+                </div>
+                <div class="text-end">
+                    <button type="submit" class="btn btn-success btn-save px-4 py-2 shadow-sm">
+                        <i class="bi bi-check2-circle me-2"></i>Änderungen speichern
+                    </button>
+                </div>
+            </div>
+
+            <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> Änderungen wurden erfolgreich im System hinterlegt!
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="excel-table shadow-sm">
+                    <thead>
+                    <tr>
+                        <th style="width: 15%;">Monat</th>
+                        <th style="width: 12%;" th:styleappend="${isBetreuer} ? 'background-color: #bbdefb; color: #0d47a1;' : ''">Soll (h)</th>
+                        <th style="width: 18%; background-color: #fff9c4; color: #856404; border-bottom: 3px solid #ffc107;">Ist (Eingabe)</th>
+                        <th style="width: 12%;">Ist (x 1,08)</th>
+                        <th style="width: 28%;">Übertrag (kumuliert)</th>
+                        <th style="width: 15%;">Tages-Liste</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="zeile, stat : ${daten.monate}">
+                        <td class="col-monat" th:text="${zeile.monatName}">Januar</td>
+
+                        <td class="num-cell p-0">
+                            <div th:if="${!isBetreuer}" class="pe-3" th:text="${#numbers.formatDecimal(zeile.summeSoll, 1, 2, 'COMMA')}">0,00</div>
+                            <input th:if="${isBetreuer}"
+                                   type="number" step="0.5"
+                                   class="excel-input excel-input-soll"
+                                   th:name="|eintraege[${stat.index}].sollStunden|"
+                                   th:value="${zeile.summeSoll}">
+                        </td>
+
+                        <td>
+                            <input type="hidden" th:name="|eintraege[${stat.index}].monat|" th:value="${stat.index + 1}">
+                            <input type="number"
+                                   step="0.25"
+                                   min="0"
+                                   class="excel-input"
+                                   th:name="|eintraege[${stat.index}].stunden|"
+                                   th:value="${zeile.summeIst}">
+                        </td>
+
+                        <td class="num-cell" th:text="${#numbers.formatDecimal(zeile.istMitFaktor, 1, 2, 'COMMA')}">0,00</td>
+
+                        <td class="num-cell"
+                            th:classappend="${zeile.uebertrag < 0} ? 'status-negativ' : 'status-positiv'"
+                            th:text="${zeile.uebertragFormatiert}">0,00</td>
+
+                        <td class="text-center bg-light">
+                            <!-- Link für den Betreuer -->
+                            <a th:if="${isBetreuer}"
+                               th:href="@{/betreuer/student/{id}/monat/{name}(id=${studentId}, name=${zeile.monatName})}"
+                               class="btn btn-sm btn-white border shadow-sm btn-detail">
+                                <i class="bi bi-search text-primary me-1"></i>
+                                <small class="fw-bold">Details</small>
+                            </a>
+
+                            <!-- Link für den Studenten -->
+                            <a th:if="${!isBetreuer}"
+                               th:href="@{/student/monat/{name}(name=${zeile.monatName})}"
+                               class="btn btn-sm btn-white border shadow-sm btn-detail">
+                                <i class="bi bi-search text-primary me-1"></i>
+                                <small class="fw-bold">Details</small>
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                    <tfoot class="fw-bold" style="background-color: #f1f3f5; border-top: 2px solid #343a40;">
+                    <tr>
+                        <td class="ps-3">GESAMTJAHR</td>
+                        <td class="num-cell" th:text="${#numbers.formatDecimal(daten.gesamtSoll, 1, 2, 'COMMA')}">0,00</td>
+                        <td class="text-center text-muted small">Automatische Summenbildung</td>
+                        <td class="num-cell" th:text="${#numbers.formatDecimal(daten.gesamtIstMitFaktor, 1, 2, 'COMMA')}">0,00</td>
+                        <td class="num-cell"
+                            th:classappend="${(daten.gesamtIstMitFaktor - daten.gesamtSoll) < 0} ? 'status-negativ' : 'status-positiv'"
+                            th:text="${#numbers.formatDecimal(daten.gesamtIstMitFaktor - daten.gesamtSoll, 1, 2, 'COMMA')}">0,00</td>
+                        <td></td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </form>
+
+        <div class="mt-4 p-3 bg-light border-start border-4 border-info rounded-end">
+            <div class="d-flex">
+                <i class="bi bi-info-circle-fill text-info me-3 fs-4"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">Hilfe zur Tabelle</h6>
+                    <ul class="small text-muted mb-0 ps-3">
+                        <li>Klicke auf den <strong>Details-Button</strong> am Ende einer Zeile, um die einzelnen Arbeitstage dieses Monats zu sehen.</li>
+                        <li><strong>Ist-Stunden:</strong> Änderungen hier überschreiben die Summe der Tageseinträge.</li>
+                        <li><strong>Übertrag:</strong> Zeigt an, ob du im Vergleich zu deinem Vertrag im Plus oder Minus bist.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

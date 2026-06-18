@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard | HiwiApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
+        .navbar { background-color: #212529; }
+        .card-stats { border-radius: 15px; border: none; transition: transform 0.2s; }
+        .card-stats:hover { transform: translateY(-5px); }
+        .bg-gradient-blue { background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%); color: white; }
+        .bg-gradient-green { background: linear-gradient(135deg, #198754 0%, #105a38 100%); color: white; }
+        .bg-gradient-yellow { background: linear-gradient(135deg, #ffc107 0%, #d39e00 100%); color: #212529; }
+        .quick-add-card { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark shadow-sm mb-4">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand fw-bold text-info">HIWI<span class="text-white">APP</span></span>
+        <div class="d-flex align-items-center">
+            <span class="text-white me-3 d-none d-md-inline" th:text="${'Willkommen, ' + user.vorname}">User</span>
+            <a th:href="@{/logout}" class="btn btn-outline-light btn-sm">Abmelden</a>
+        </div>
+    </div>
+</nav>
+
+<main class="container">
+
+    <!-- Erfolgskontrolle -->
+    <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> Eintrag erfolgreich gespeichert!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Statistik-Kacheln -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card card-stats bg-gradient-blue h-100 shadow">
+                <div class="card-body p-4">
+                    <h6 class="text-uppercase small fw-bold">Jahresübersicht</h6>
+                    <h2 class="fw-bold mb-3" th:text="${#numbers.formatDecimal(daten.gesamtIstMitFaktor, 1, 1, 'COMMA')} + ' h'">0,0 h</h2>
+                    <p class="mb-0 opacity-75 small">Stand inkl. Urlaubsfaktor</p>
+                    <a th:href="@{/student/bearbeiten}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-stats bg-gradient-green h-100 shadow">
+                <div class="card-body p-4">
+                    <h6 class="text-uppercase small fw-bold">Aktueller Monat</h6>
+                    <h2 class="fw-bold mb-3">Details</h2>
+                    <p class="mb-0 opacity-75 small">Alle Einträge einsehen</p>
+                    <a th:href="@{/student/aktueller-monat}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-stats bg-gradient-yellow h-100 shadow">
+                <div class="card-body p-4 text-center">
+                    <i class="bi bi-person-circle fs-1 mb-2 d-block"></i>
+                    <h6 class="text-uppercase small fw-bold">Mein Profil</h6>
+                    <a th:href="@{/student/profil}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK-ADD FORMULAR -->
+    <div class="card quick-add-card shadow-sm mb-5">
+        <div class="card-header bg-white py-3">
+            <h5 class="fw-bold mb-0 text-primary">
+                <i class="bi bi-clock-history me-2"></i>Heute gearbeitet?
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            <form th:action="@{/student/add}" th:object="${workLog}" method="post">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Datum</label>
+                        <input type="date" th:field="*{datum}" class="form-control form-control-lg" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold text-muted">Stunden (Netto)</label>
+                        <input type="number" step="0.25" th:field="*{istStunden}" class="form-control form-control-lg" placeholder="z.B. 4.5" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-muted">Tätigkeit</label>
+                        <input type="text" th:field="*{beschreibung}" class="form-control form-control-lg" placeholder="Was hast du gemacht?" required>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
+                            Speichern
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

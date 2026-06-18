@@ -1,68 +1,295 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="de">
 <head>
-  <title>System-Einstellungen</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>Benutzerverwaltung | HiwiApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .main-container { padding: 30px; max-width: 1400px; margin: auto; }
+        .table-card { background: white; border-radius: 12px; border: 1px solid #dee2e6; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; }
+        .thead-custom { background-color: #f1f3f5; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    </style>
 </head>
-<body class="bg-light p-4">
+<body>
 
-<div class="container bg-white p-4 shadow-sm rounded">
-  <h2 class="text-danger mb-3">System-Einstellungen</h2>
-  <p class="text-muted">Verwalte Benutzerkonten, Rollen und globale Projekteinstellungen.</p>
+<nav class="navbar navbar-dark bg-dark px-4 sticky-top">
+    <span class="navbar-brand fw-bold">HIWI<span class="text-info">APP</span> | Zentrale Verwaltung</span>
+    <a th:href="@{/betreuer/dashboard}" class="btn btn-outline-light btn-sm">Dashboard</a>
+</nav>
 
-  <hr>
-  <h4>Alle Benutzer</h4>
-  <table class="table table-striped mt-3">
-    <thead>
-    <tr>
-      <th>Benutzername</th>
-      <th>E-Mail</th>
-      <th>Rolle</th>
-      <th>Aktionen</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="user : ${users}">
-      <td th:text="${user.username}"></td>
-      <td th:text="${user.email}"></td>
-      <td th:text="${user.role}"></td>
-      <td>
-        <a th:href="@{'/admin/users/edit/' + ${user.id}}" class="btn btn-warning btn-sm">Bearbeiten</a>
-        <form th:action="@{'/admin/users/delete/' + ${user.id}}" method="post" style="display:inline;">
-          <button type="submit" class="btn btn-danger btn-sm">Löschen</button>
-        </form>
-      </td>
-    </tr>
-    </tbody>
+<main class="main-container">
 
-  </table>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${errorMessage}">Fehlermeldung</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 
-  <hr>
-  <h4>Neuen Benutzer anlegen</h4>
-  <form th:action="@{/admin/users}" method="post">
-    <div class="mb-3">
-      <label>Benutzername</label>
-      <input type="text" name="username" class="form-control" required>
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span th:text="${successMessage}">Erfolgsmeldung</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-    <div class="mb-3">
-      <label>E-Mail</label>
-      <input type="email" name="email" class="form-control" required>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold m-0"><i class="bi bi-people-fill me-2 text-primary"></i>Benutzer & Kontakte</h3>
+        <button class="btn btn-primary shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalAddUser">
+            <i class="bi bi-person-plus-fill me-2"></i>NEUER BENUTZER
+        </button>
     </div>
-    <div class="mb-3">
-      <label>Passwort</label>
-      <input type="password" name="password" class="form-control" required>
+
+    <div class="table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="thead-custom">
+                <tr>
+                    <th class="ps-4">Name, Vorname</th>
+                    <th>Geburtsdatum</th> <th>Kontakt</th>
+                    <th>Anschrift</th>
+                    <th>Soll (h)</th>
+                    <th class="text-end pe-4">Aktionen</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${users}">
+                    <td class="ps-4">
+                        <div class="fw-bold" th:text="${(s.nachname ?: '---') + ', ' + (s.vorname ?: '---')}"></div>
+
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <small class="text-muted"><i class="bi bi-person me-1"></i><span th:text="${s.username}">username</span></small>
+                            <span class="badge bg-light text-dark border" style="font-size: 0.7rem;" th:text="${s.role}">ROLE</span>
+                        </div>
+                    </td>
+
+                    <td class="small">
+                        <span th:if="${s.geburtsdatum != null}">
+                            <i class="bi bi-cake2 me-1 text-danger"></i>
+                            <span th:text="${#temporals.format(s.geburtsdatum, 'dd.MM.yyyy')}">01.01.2000</span>
+                        </span>
+                        <span th:if="${s.geburtsdatum == null}" class="text-muted">---</span>
+                    </td>
+
+                    <td>
+                        <div class="small"><i class="bi bi-envelope me-1 text-primary"></i> <span th:text="${s.email}"></span></div>
+                        <div class="small"><i class="bi bi-telephone me-1 text-secondary"></i> <span th:text="${s.telefon ?: '---'}"></span></div>
+                    </td>
+                    <td class="small text-muted" th:text="${s.anschrift ?: 'Keine Anschrift hinterlegt'}"></td>
+                    <td>
+                        <span th:if="${s.sollStunden > 0}"
+                              class="badge bg-info-subtle text-info-emphasis border border-info"
+                              th:text="${s.sollStunden + ' h'}">40 h</span>
+                        <span th:if="${s.sollStunden == 0}" class="text-muted small">---</span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" th:data-bs-target="'#modalEdit' + ${s.id}">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <form th:action="@{/admin/users/delete/{id}(id=${s.id})}" method="post"
+                                  onsubmit="return confirm('Diesen Benutzer wirklich löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger ms-1">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="modal fade text-start" th:id="'modalEdit' + ${s.id}" tabindex="-1">
+                            <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-content">
+                                    <form th:action="@{/admin/users/edit/{id}(id=${s.id})}" method="post">
+                                        <div class="modal-header bg-light">
+                                            <h5 class="modal-title fw-bold">Profil bearbeiten: <span th:text="${s.username}" class="text-primary"></span></h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-bold small">Benutzername</label>
+                                                    <input type="text" name="username" class="form-control bg-light" th:value="${s.username}" readonly>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-bold small">Rolle</label>
+                                                    <select name="role" class="form-select edit-role-select">
+                                                        <option th:each="r : ${roles}" th:value="${r}" th:text="${r}" th:selected="${r == s.role}"></option>
+                                                    </select>
+                                                </div>
+                                                <hr class="my-2">
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-bold small">Vorname</label>
+                                                    <input type="text" name="vorname" class="form-control" th:value="${s.vorname}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-bold small">Nachname</label>
+                                                    <input type="text" name="nachname" class="form-control" th:value="${s.nachname}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold small">E-Mail</label>
+                                                    <input type="email" name="email" class="form-control" th:value="${s.email}" required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold small">Telefon</label>
+                                                    <input type="text" name="telefon" class="form-control" th:value="${s.telefon}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold small">Geburtsdatum</label>
+                                                    <input type="date" name="geburtsdatum" class="form-control" th:value="${s.geburtsdatum}">
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label fw-bold small">Anschrift</label>
+                                                    <textarea name="anschrift" class="form-control" rows="2" th:text="${s.anschrift}"></textarea>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="edit-sollstunden-container">
+                                                        <label class="form-label fw-bold small text-primary">Soll-Stunden pro Monat</label>
+                                                        <input type="number" step="0.5" name="sollStunden" class="form-control border-primary" th:value="${s.sollStunden}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-bold small text-danger">Passwort ändern</label>
+                                                    <input type="password" name="password" class="form-control border-danger"
+                                                           placeholder="Mind. 8 Zeichen (1 Groß-, 1 Zahl)"
+                                                           pattern="^(?=.*[0-9])(?=.*[A-Z]).{8,}$"
+                                                           title="Das Passwort muss mindestens 8 Zeichen lang sein, mindestens einen Großbuchstaben und mindestens eine Zahl enthalten.">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer bg-light">
+                                            <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Abbrechen</button>
+                                            <button type="submit" class="btn btn-primary fw-bold px-4">Änderungen speichern</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="mb-3">
-      <label>Rolle</label>
-      <select name="role" class="form-select">
-        <option value="STUDENT">Student</option>
-        <option value="BETREUER">Betreuer</option>
-        <option value="ADMIN">Administrator</option>
-      </select>
+</main>
+
+<div class="modal fade" id="modalAddUser" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form th:action="@{/admin/users}" method="post">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">Neuen Benutzer registrieren</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold small">Benutzername</label>
+                            <input type="text" name="username" class="form-control" placeholder="z.B. m.mustermann" th:value="${user?.username}" required>
+                        </div>
+
+                        <hr class="my-2 text-muted">
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Vorname</label>
+                            <input type="text" name="vorname" class="form-control" placeholder="z.B. Max" th:value="${user?.vorname}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Nachname</label>
+                            <input type="text" name="nachname" class="form-control" placeholder="z.B. Mustermann" th:value="${user?.nachname}" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">E-Mail Adresse</label>
+                            <input type="email" name="email" class="form-control" placeholder="name@uni.de" th:value="${user?.email}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Telefonnummer (Optional)</label>
+                            <input type="text" name="telefon" class="form-control" placeholder="z.B. 0176 / 1234567" th:value="${user?.telefon}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Geburtsdatum (Optional)</label>
+                            <input type="date" name="geburtsdatum" class="form-control" th:value="${user?.geburtsdatum}">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold small">Anschrift (Optional)</label>
+                            <input type="text" name="anschrift" class="form-control" placeholder="Straße, Hausnummer, PLZ & Ort" th:value="${user?.anschrift}">
+                        </div>
+
+                        <hr class="my-2 text-muted">
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Rolle</label>
+                            <select name="role" id="addRoleSelect" class="form-select">
+                                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}" th:selected="${r == user?.role}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="addSollStundenContainer">
+                            <label class="form-label fw-bold small">Soll-Stunden pro Monat</label>
+                            <input type="number" step="0.5" name="sollStunden" class="form-control" th:value="${user?.sollStunden ?: '0.0'}">
+                        </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">ACCOUNT ANLEGEN</button>
+                </div>
+            </form>
+        </div>
     </div>
-    <button type="submit" class="btn btn-success w-100">Account speichern</button>
-  </form>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        if (document.querySelector('.alert-danger')) {
+            const myModal = new bootstrap.Modal(document.getElementById('modalAddUser'));
+            myModal.show();
+        }
+
+        const addRoleSelect = document.getElementById("addRoleSelect");
+        const addSollStundenContainer = document.getElementById("addSollStundenContainer");
+
+        function toggleAddSollStunden() {
+            if (!addRoleSelect || !addSollStundenContainer) return;
+            const selectedRole = addRoleSelect.value.toUpperCase();
+            if (selectedRole === "ADMIN" || selectedRole === "BETREUER") {
+                addSollStundenContainer.style.display = "none";
+            } else {
+                addSollStundenContainer.style.display = "block";
+            }
+        }
+
+        if (addRoleSelect) {
+            addRoleSelect.addEventListener("change", toggleAddSollStunden);
+            toggleAddSollStunden();
+        }
+
+        const editRoleSelects = document.querySelectorAll(".edit-role-select");
+
+        editRoleSelects.forEach(function (selectField) {
+            const modalBody = selectField.closest(".modal-body");
+            const sollStundenContainer = modalBody.querySelector(".edit-sollstunden-container");
+
+            function toggleEditSollStunden() {
+                if (!sollStundenContainer) return;
+                const selectedRole = selectField.value.toUpperCase();
+                if (selectedRole === "ADMIN" || selectedRole === "BETREUER") {
+                    sollStundenContainer.style.display = "none";
+                } else {
+                    sollStundenContainer.style.display = "block";
+                }
+            }
+
+            selectField.addEventListener("change", toggleEditSollStunden);
+            toggleEditSollStunden();
+        });
+
+    });
+</script>
 
 </body>
 </html>

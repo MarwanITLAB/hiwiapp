@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Monatsliste | HiwiApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .main-container { padding: 30px; max-width: 1000px; margin: auto; }
+        .table-container { background: white; border-radius: 12px; overflow: hidden; }
+        .sum-row { background-color: #e9ecef !important; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark px-4 mb-4 shadow-sm">
+    <div class="container-fluid">
+        <span class="navbar-brand fw-bold text-info">HIWI<span class="text-white">APP</span></span>
+        <a th:href="@{/student/dashboard}" class="btn btn-outline-light btn-sm">Dashboard</a>
+    </div>
+</nav>
+
+<main class="main-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0 text-dark" th:text="${ausgewaehlterMonat}">Monat</h3>
+            <small class="text-muted" th:text="${#lists.size(logsInMonat)} + ' Einträge'"></small>
+        </div>
+        <a th:href="@{/student/bearbeiten}" class="btn btn-outline-secondary btn-sm">Jahresübersicht</a>
+    </div>
+
+    <div class="table-container border shadow-sm">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="small text-uppercase fw-bold bg-light">
+            <tr>
+                <th class="ps-4 py-3">Datum</th>
+                <th class="py-3">Tätigkeit</th>
+                <th class="text-end pe-4 py-3">Stunden</th>
+                <th class="text-center py-3">Aktion</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="log : ${logsInMonat}">
+                <!-- Datum sicher formatieren -->
+                <td class="ps-4 fw-bold" th:text="${log.datum != null} ? ${#temporals.format(log.datum, 'dd.MM.yyyy')} : ''"></td>
+                <td th:text="${log.beschreibung}" class="text-muted"></td>
+                <!-- Stunden sicher formatieren -->
+                <td class="text-end pe-4 fw-bold">
+                    <span th:text="${#numbers.formatDecimal(log.istStunden, 1, 2, 'COMMA')}">0,00</span> h
+                </td>
+                <td class="text-center">
+                    <form th:action="@{/student/delete/{id}(id=${log.id})}" method="post">
+                        <button type="submit" class="btn btn-link text-danger p-0" onclick="return confirm('Löschen?')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+
+            <tfoot th:if="${not #lists.isEmpty(logsInMonat)}">
+            <tr class="sum-row fw-bold">
+                <td colspan="2" class="ps-4 py-3">GESAMT (Netto)</td>
+                <td class="text-end pe-4 py-3">
+                    <span th:text="${#numbers.formatDecimal(totalNetto, 1, 2, 'COMMA')}">0,00</span> h
+                </td>
+                <td></td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-package de.hiwiapp.hiwiapp.model;
+package de.hiwiapp.model;
 
 public enum Role {
 

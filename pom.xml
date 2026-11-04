@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.2</version>
+        <version>4.0.8</version>
         <relativePath/>
     </parent>
 
@@ -17,9 +17,13 @@
     <description>HiwiApp Projekt für Studenten und Betreuer</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
+        <antisamy.version>1.7.8</antisamy.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
     </properties>
 
     <dependencies>
@@ -41,31 +45,30 @@
         <dependency>
             <groupId>org.thymeleaf.extras</groupId>
             <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+            <version>3.1.5.RELEASE</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.owasp.antisamy</groupId>
+            <artifactId>antisamy</artifactId>
+            <version>${antisamy.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- HIER NEU HINZUFÜGEN: -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+            <version>42.7.12</version>
         </dependency>
-
 
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -81,6 +84,7 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
+            <version>7.0.7</version>
             <scope>test</scope>
         </dependency>
 
@@ -89,7 +93,30 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
     </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <!-- httpclient5 auf sichere Version setzen -->
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>5.6.3</version>
+            </dependency>
 
+            <!-- httpcore5-h2 auf sichere Version setzen -->
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5-h2</artifactId>
+                <version>5.4.3</version>
+            </dependency>
+
+            <!-- Optional: auch httpcore5 explizit fixieren, falls verwendet -->
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5</artifactId>
+                <version>5.4.3</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <build>
         <plugins>
             <plugin>

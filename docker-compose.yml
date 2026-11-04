@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  db:
+    image: chainguard/postgres:latest
+    container_name: mein-postgres-container
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: meinpasswort
+    ports:
+      - "127.0.0.1:54325:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/18/docker
+
+  app:
+    build: .
+    container_name: hiwiapp-container
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=meinpasswort
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

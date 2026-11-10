@@ -6,6 +6,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import de.hiwiapp.security.HtmlInputFilter;
 
 @Configuration
 public class SecurityConfig {
@@ -20,7 +22,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         // 1. Öffentliche Ressourcen
-                        .requestMatchers("/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/login", "/register", "/error", "/css/**", "/js/**", "/images/**").permitAll()
 
                         // 2. Admin & Betreuer dürfen die Benutzerverwaltung nutzen
                         // WICHTIG: Betreuer muss hier rein, damit er speichern darf!
@@ -45,8 +47,13 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID")
                         .permitAll()
                 )
-                // Hier hattest du die richtige Idee: CSRF aus für die Entwicklung!
-                .csrf(csrf -> csrf.disable());
+                // HTML-Prüfung (AntiSamy) für ALLE Eingaben – auch beim Login.
+                // Unerlaubtes HTML -> Log-Eintrag + Nutzer wird ausgeloggt (siehe HtmlInputFilter)
+                .addFilterBefore(new HtmlInputFilter(), UsernamePasswordAuthenticationFilter.class)
+                // CSRF-Schutz ist AN (Standard). Thymeleaf fügt das nötige Token automatisch
+                // in jedes Formular mit th:action ein – deshalb muss jedes POST-Formular th:action nutzen.
+                // Abmelden geht deshalb nur noch per POST-Formular (nicht per Link).
+                .csrf(csrf -> {});
 
         return http.build();
     }

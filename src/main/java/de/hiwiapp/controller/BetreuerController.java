@@ -10,10 +10,12 @@ import de.hiwiapp.model.WorkLog;
 import de.hiwiapp.service.UserService;
 import de.hiwiapp.service.WorkLogService;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model; // Das wichtigste Import für das 'model' Problem
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -36,10 +38,14 @@ public class BetreuerController {
     }
 
     /**
-     * Die klassische Master-Liste mit der Jahresübersicht aller Hiwis.
+     * Die klassische Master-Liste mit der Jahresübersicht aller Hiwis,
+     * optional sortierbar nach Minusstunden (über ?sort=minus).
      */
     @GetMapping("/stunden")
-    public String showStundenMaster(Model model) {
+    public String showStundenMaster(
+            @RequestParam(name = "sort", required = false) String sort,
+            Model model) {
+
         List<User> studenten = userService.findAll().stream()
                 .filter(u -> u.getRole() == Role.STUDENT)
                 .collect(Collectors.toList());
@@ -48,8 +54,15 @@ public class BetreuerController {
                 .map(s -> new MasterEintrag(s, workLogService.getDashboardDaten(s)))
                 .collect(Collectors.toList());
 
+        // NEU: Wenn der Sortier-Parameter "minus" aktiv ist, nach dem Übertrag sortieren
+        if ("minus".equals(sort)) {
+            // Größtes Minus zuerst – Stand bis zum aktuellen Monat (nicht Dezember)
+            masterListe.sort(Comparator.comparingDouble(MasterEintrag::getStandHeute));
+        }
+
         model.addAttribute("masterListe", masterListe);
         model.addAttribute("noData", masterListe.isEmpty());
+        model.addAttribute("currentSort", sort);
 
         return "betreuer/stunden-master";
     }
@@ -95,8 +108,7 @@ public class BetreuerController {
      * SPEICHERN: Verarbeitet Korrekturen an Ist- und Soll-Stunden eines Hiwis.
      */
     @PostMapping("/save-student/{id}")
-    public String speichereStudentDurchBetreuer(@PathVariable Long id,
-                                                @ModelAttribute("stundenForm") StundenUpdateForm form) {
+    public String speichereStudentDurchBetreuer(@PathVariable Long id, @ModelAttribute("stundenForm") StundenUpdateForm form) {
         User student = userService.findById(id);
         workLogService.aktualisiereMonatsSummen(student, form.getEintraege());
         workLogService.aktualisiereSollVorgaben(student, form.getEintraege());
@@ -108,13 +120,9 @@ public class BetreuerController {
      * Nutzt das existierende Template student/monat-detail.html
      */
     @GetMapping("/student/{studentId}/monat/{monatName}")
-    public String showStudentMonatDetails(@PathVariable Long studentId,
-                                          @PathVariable String monatName,
-                                          Model model) {
-
+    public String showStudentMonatDetails(@PathVariable Long studentId, @PathVariable String monatName, Model model) {
         User student = userService.findById(studentId);
 
-        // Filter für den richtigen Monat (z.B. "Mai 2026")
         DateTimeFormatter monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.GERMAN);
 
         List<WorkLog> logsInMonat = workLogService.findByUser(student).stream()
@@ -125,12 +133,12 @@ public class BetreuerController {
                 .mapToDouble(l -> l.getIstStunden() != null ? l.getIstStunden() : 0.0)
                 .sum();
 
-        // Model befüllen für das student/monat-detail Template
         model.addAttribute("user", student);
         model.addAttribute("ausgewaehlterMonat", monatName);
         model.addAttribute("logsInMonat", logsInMonat);
         model.addAttribute("totalNetto", netto);
-        model.addAttribute("isBetreuer", true); // Hilfreich, falls du im Detail-HTML Buttons verstecken willst
+        model.addAttribute("isBetreuer", true);
+        model.addAttribute("monatGesperrt", false);
 
         return "student/monat-detail";
     }

@@ -2,6 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="de">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Jahres-Konto | HiwiApp</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
@@ -125,7 +126,11 @@
                     </thead>
                     <tbody>
                     <tr th:each="zeile, stat : ${daten.monate}">
-                        <td class="col-monat" th:text="${zeile.monatName}">Januar</td>
+                        <td class="col-monat">
+                            <span th:text="${zeile.monatName}">Januar</span>
+                            <i th:if="${!isBetreuer and gesperrtBisMonat != null and stat.count <= gesperrtBisMonat}"
+                               class="bi bi-lock-fill text-muted ms-1" title="Gesperrt – Änderungen nur über den Betreuer"></i>
+                        </td>
 
                         <td class="num-cell p-0">
                             <div th:if="${!isBetreuer}" class="pe-3" th:text="${#numbers.formatDecimal(zeile.summeSoll, 1, 2, 'COMMA')}">0,00</div>
@@ -143,7 +148,8 @@
                                    min="0"
                                    class="excel-input"
                                    th:name="|eintraege[${stat.index}].stunden|"
-                                   th:value="${zeile.summeIst}">
+                                   th:value="${zeile.summeIst}"
+                                   th:readonly="${!isBetreuer and gesperrtBisMonat != null and stat.count <= gesperrtBisMonat}">
                         </td>
 
                         <td class="num-cell" th:text="${#numbers.formatDecimal(zeile.istMitFaktor, 1, 2, 'COMMA')}">0,00</td>

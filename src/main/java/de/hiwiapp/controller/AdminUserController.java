@@ -7,13 +7,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
 
 
+import java.security.SecureRandom;
 import java.util.List;
-import java.util.UUID;
 
 @Controller
 @RequestMapping("/admin")
@@ -22,6 +23,13 @@ public class AdminUserController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender; // <-- Aktiviert den Mail-Dienst
+
+    // Absender = das Mail-Konto aus der Konfiguration (Umgebungsvariable MAIL_FROM bzw. MAIL_USERNAME)
+    @Value("${app.mail.from}")
+    private String mailFrom;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final String PW_ZEICHEN = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
 
     // Regulärer Ausdruck: Mindestens 8 Zeichen, mindestens 1 Großbuchstabe, mindestens 1 Zahl (für manuelle Änderungen)
     private static final String PASSWORD_PATTERN = "^(?=.*[0-9])(?=.*[A-Z]).{8,}$";
@@ -63,7 +71,7 @@ public class AdminUserController {
 
         // 2. AUTOMATISCHES ZUFALLSPASSWORT GENERIEREN
         // Erzeugt einen eindeutigen String und schneidet die ersten 10 Zeichen ab (z.B. d3b7f2a1c9)
-        String generiertesPasswort = UUID.randomUUID().toString().substring(0, 10);
+        String generiertesPasswort = generierePasswort(12);
 
         // 3. Passwort verschlüsseln für die Datenbank
         user.setPassword(passwordEncoder.encode(generiertesPasswort));
@@ -81,7 +89,9 @@ public class AdminUserController {
             SimpleMailMessage message = new SimpleMailMessage();
 
             // WICHTIG: Trage hier in den Anführungszeichen deine neue Gmail-Adresse ein!
-            message.setFrom("DEINE_NEUE_GMAIL@gmail.com");
+            if (mailFrom != null && !mailFrom.isBlank()) {
+                message.setFrom(mailFrom);
+            }
 
             message.setTo(user.getEmail()); // Sendet an die im Formular eingetragene E-Mail des Users
             message.setSubject("Dein Zugang zur HiwiApp");
@@ -98,6 +108,8 @@ public class AdminUserController {
             redirectAttributes.addFlashAttribute("successMessage", "Benutzer erfolgreich angelegt! Die Zugangsdaten wurden per E-Mail versendet.");
 
         } catch (Exception e) {
+            // Grund ins Server-Log schreiben, damit man Mail-Probleme nachvollziehen kann
+            System.err.println("Mailversand fehlgeschlagen an " + user.getEmail() + ": " + e.getMessage());
             // Falls Google die Verbindung blockiert oder die Adresse falsch getippt ist, fangen wir das hier ab,
             // damit das Programm nicht abstürzt. Das Passwort wird dann als Warnung ausgegeben.
             redirectAttributes.addFlashAttribute("errorMessage", "Benutzer wurde angelegt, aber die E-Mail konnte nicht gesendet werden! Temporäres Passwort lautet: " + generiertesPasswort);
@@ -158,5 +170,14 @@ public class AdminUserController {
         userRepository.deleteById(id);
         redirectAttributes.addFlashAttribute("successMessage", "Benutzer erfolgreich gelöscht!");
         return "redirect:/admin/users?deleted";
+    }
+
+    /** Erzeugt ein zufälliges Passwort (kryptografisch sicher, ohne verwechselbare Zeichen wie 0/O, 1/l). */
+    private static String generierePasswort(int laenge) {
+        StringBuilder sb = new StringBuilder(laenge);
+        for (int i = 0; i < laenge; i++) {
+            sb.append(PW_ZEICHEN.charAt(RANDOM.nextInt(PW_ZEICHEN.length())));
+        }
+        return sb.toString();
     }
 }

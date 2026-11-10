@@ -1,14 +1,17 @@
-version: '3.8'
+# Start:  docker compose up -d --build
+# Vorher: .env.example nach .env kopieren und ausfüllen (die .env NIE in Git einchecken!)
 
 services:
   db:
     image: chainguard/postgres:latest
-    container_name: mein-postgres-container
+    container_name: hiwiapp-db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: meinpasswort
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Bitte POSTGRES_PASSWORD in .env setzen}
     ports:
+      # Nur vom Rechner selbst erreichbar (nicht aus dem Internet) – z.B. für IntelliJ/pgAdmin
       - "127.0.0.1:54325:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/18/docker
@@ -16,13 +19,21 @@ services:
   app:
     build: .
     container_name: hiwiapp-container
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=meinpasswort
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-postgres}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_THYMELEAF_CACHE: "true"
+      # E-Mail
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # Start-Benutzer: auf dem Server KEINE Test-Konten mit Passwort 123
+      APP_DEMO_USERS: ${APP_DEMO_USERS:-false}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      TZ: Europe/Berlin
     depends_on:
       - db
 

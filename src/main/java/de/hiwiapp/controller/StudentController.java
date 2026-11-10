@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -55,8 +56,23 @@ public class StudentController {
      */
     @PostMapping("/add")
     public String addWorkLog(@ModelAttribute("workLog") WorkLog workLog,
-                             @AuthenticationPrincipal UserDetails userDetails) {
+                             @AuthenticationPrincipal UserDetails userDetails, RedirectAttributes redirectAttributes) {
+
+        // Sicherheitsprüfung: ist der Monat bereits gespertt?
+        if(workLogService.isMonatGesperrt(workLog.getDatum())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Eintrag abgelehnt: Arbeitszeiten können nur für den aktuellen Monat und den direkten Vormonat selbst eingetragen werden. Für ältere Monate wenden Sie sich bitte an Ihren Betreuer.");
+            return "redirect:/student/dashboard?error"; // <--- Hier stand vorher "dashbaord" (mit r und o vertauscht)
+        }
+
+        // Reservierte Beschreibungen sind nur für interne Sammel-/Soll-Einträge gedacht
+        if (workLogService.istReservierteBeschreibung(workLog.getBeschreibung())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Diese Beschreibung ist reserviert. Bitte wähle eine andere.");
+            return "redirect:/student/dashboard?error";
+        }
+
         User student = userService.findByUsername(userDetails.getUsername()).orElseThrow();
+        workLog.setId(null);          // Immer NEU anlegen – verhindert, dass fremde Einträge überschrieben werden
+        workLog.setSollStunden(0.0);
         workLog.setUser(student);
         workLogService.speichern(workLog);
 
@@ -86,6 +102,9 @@ public class StudentController {
         model.addAttribute("logsInMonat", logsInMonat);
         model.addAttribute("totalNetto", netto);
         model.addAttribute("totalBrutto", netto * 1.08); // Brutto-Logik nur in der Übersicht
+        model.addAttribute("isBetreuer", false);
+        // Darf der Student in diesem Monat noch löschen? (gleiche Regel wie beim Eintragen)
+        model.addAttribute("monatGesperrt", !logsInMonat.isEmpty() && workLogService.isMonatGesperrt(logsInMonat.get(0).getDatum()));
 
         return "student/monat-detail";
     }
@@ -114,6 +133,7 @@ public class StudentController {
         model.addAttribute("stundenForm", form);
         model.addAttribute("isBetreuer", false);
         model.addAttribute("studentId", student.getId());
+        model.addAttribute("gesperrtBisMonat", workLogService.letzterGesperrterMonatImJahr());
         return "student/stunden-bearbeiten";
     }
 
@@ -124,7 +144,14 @@ public class StudentController {
     public String speichereAlleStunden(@ModelAttribute("stundenForm") StundenUpdateForm form,
                                        @AuthenticationPrincipal UserDetails userDetails) {
         User student = userService.findByUsername(userDetails.getUsername()).orElseThrow();
-        workLogService.aktualisiereMonatsSummen(student, form.getEintraege());
+
+        // Gesperrte Monate darf der Student nicht mehr ändern – sie werden hier aussortiert
+        int gesperrtBis = workLogService.letzterGesperrterMonatImJahr();
+        List<MonatsEintrag> erlaubt = form.getEintraege().stream()
+                .filter(e -> e.getMonat() > gesperrtBis)
+                .toList();
+
+        workLogService.aktualisiereMonatsSummen(student, erlaubt);
         return "redirect:/student/dashboard?success";
     }
 
@@ -134,9 +161,23 @@ public class StudentController {
     }
 
     @PostMapping("/delete/{id}")
-    public String deleteWorkLog(@PathVariable Long id) {
+    public String deleteWorkLog(@PathVariable Long id,
+                                @AuthenticationPrincipal UserDetails userDetails,
+                                RedirectAttributes redirectAttributes) {
+        User student = userService.findByUsername(userDetails.getUsername()).orElseThrow();
         WorkLog log = workLogService.findById(id);
         String monatName = log.getDatum().format(monthFormatter);
+
+        // Sicherheitsprüfung 1: Gehört der Eintrag wirklich diesem Studenten?
+        if (log.getUser() == null || !log.getUser().getId().equals(student.getId())) {
+            return "redirect:/student/dashboard?error";
+        }
+        // Sicherheitsprüfung 2: Ist der Monat schon gesperrt?
+        if (workLogService.isMonatGesperrt(log.getDatum())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Löschen abgelehnt: Dieser Monat ist bereits gesperrt. Bitte wende dich an deinen Betreuer.");
+            return "redirect:/student/dashboard?error";
+        }
+
         workLogService.deleteById(id);
         return "redirect:/student/monat/" + monatName;
     }
@@ -145,6 +186,6 @@ public class StudentController {
     public String showProfil(Model model, @AuthenticationPrincipal UserDetails userDetails) {
         User student = userService.findByUsername(userDetails.getUsername()).orElseThrow();
         model.addAttribute("user", student);
-        return "student/profil";
+        return "student/Profil"; // exakt wie die Datei Profil.html – Linux unterscheidet Groß/Klein
     }
 }

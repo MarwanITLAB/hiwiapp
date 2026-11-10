@@ -19,6 +19,11 @@ import java.util.Locale;
 @Service
 public class WorkLogService {
 
+    /** Interne Beschreibungen für Sonder-Einträge (keine echten Arbeitstage). */
+    public static final String SOLL_VORGABE = "Monatliche Sollvorgabe";
+    public static final String GESAMTEINGABE = "Monatliche Gesamteingabe";
+
+
     private final WorkLogRepository workLogRepository;
     private final UserRepository userRepository;
 
@@ -57,14 +62,14 @@ public class WorkLogService {
             // Ist-Stunden berechnen (Einträge für die monatliche Sollvorgabe werden ignoriert)
             double summeIst = allLogs.stream()
                     .filter(log -> log.getDatum().getMonthValue() == m && log.getDatum().getYear() == aktuellesJahr)
-                    .filter(log -> !"Monatliche Sollvorgabe".equals(log.getBeschreibung()))
+                    .filter(log -> !SOLL_VORGABE.equals(log.getBeschreibung()))
                     .mapToDouble(WorkLog::getIstStunden)
                     .sum();
 
             // Soll-Stunden spezifisch für diesen Monat aus den Logs suchen
             double monatlichesSoll = allLogs.stream()
                     .filter(log -> log.getDatum().getMonthValue() == m && log.getDatum().getYear() == aktuellesJahr)
-                    .filter(log -> "Monatliche Sollvorgabe".equals(log.getBeschreibung()))
+                    .filter(log -> SOLL_VORGABE.equals(log.getBeschreibung()))
                     .mapToDouble(WorkLog::getSollStunden)
                     .findFirst()
                     .orElse(student.getSollStunden() != null ? student.getSollStunden() : 0.0); // Fallback auf globales User-Soll
@@ -88,27 +93,42 @@ public class WorkLogService {
      * falls der Student mal etwas vergessen hat.
      */
     public void aktualisiereMonatsSummen(User student, List<MonatsEintrag> eintraege) {
+        if (eintraege == null) return;
+        List<WorkLog> alleLogs = workLogRepository.findByUser(student);
+
         for (MonatsEintrag eintrag : eintraege) {
+            if (eintrag.getStunden() == null) continue; // leeres Feld = nichts ändern
             LocalDate datum = LocalDate.now().withMonth(eintrag.getMonat()).withDayOfMonth(1);
 
-            // Wir suchen nach einem "Sammel-Eintrag" für diesen Monat
-            List<WorkLog> vorhandeneLogs = workLogRepository.findByUser(student).stream()
+            List<WorkLog> imMonat = alleLogs.stream()
                     .filter(log -> log.getDatum().getMonthValue() == eintrag.getMonat()
-                            && log.getDatum().getYear() == datum.getYear()
-                            && "Monatliche Gesamteingabe".equals(log.getBeschreibung()))
+                            && log.getDatum().getYear() == datum.getYear())
                     .toList();
 
-            if (!vorhandeneLogs.isEmpty()) {
-                WorkLog log = vorhandeneLogs.get(0);
-                log.setIstStunden(eintrag.getStunden() != null ? eintrag.getStunden() : 0.0);
-                workLogRepository.save(log);
-            } else if (eintrag.getStunden() != null && eintrag.getStunden() > 0) {
-                // Nur anlegen, wenn wirklich Stunden eingetragen wurden
+            // Summe der normalen Tageseinträge (ohne Sammel- und Soll-Einträge)
+            double summeTage = imMonat.stream()
+                    .filter(log -> !istReservierteBeschreibung(log.getBeschreibung()))
+                    .mapToDouble(log -> log.getIstStunden() != null ? log.getIstStunden() : 0.0)
+                    .sum();
+
+            // FIX Doppelzählung: Das Formular zeigt die GESAMT-Summe des Monats.
+            // Der Sammel-Eintrag bekommt deshalb nur die DIFFERENZ zu den Tageseinträgen.
+            // (Weniger als die Tageseinträge geht nicht – dafür muss man Tage löschen.)
+            double differenz = Math.max(0.0, eintrag.getStunden() - summeTage);
+
+            WorkLog sammel = imMonat.stream()
+                    .filter(log -> GESAMTEINGABE.equals(log.getBeschreibung()))
+                    .findFirst().orElse(null);
+
+            if (sammel != null) {
+                sammel.setIstStunden(differenz);
+                workLogRepository.save(sammel);
+            } else if (differenz > 0) {
                 WorkLog neuerLog = new WorkLog();
                 neuerLog.setUser(student);
                 neuerLog.setDatum(datum);
-                neuerLog.setIstStunden(eintrag.getStunden());
-                neuerLog.setBeschreibung("Monatliche Gesamteingabe");
+                neuerLog.setIstStunden(differenz);
+                neuerLog.setBeschreibung(GESAMTEINGABE);
                 workLogRepository.save(neuerLog);
             }
         }
@@ -128,7 +148,7 @@ public class WorkLogService {
             List<WorkLog> vorhandeneSollLogs = workLogRepository.findByUser(student).stream()
                     .filter(log -> log.getDatum().getMonthValue() == eintrag.getMonat()
                             && log.getDatum().getYear() == datum.getYear()
-                            && "Monatliche Sollvorgabe".equals(log.getBeschreibung()))
+                            && SOLL_VORGABE.equals(log.getBeschreibung()))
                     .toList();
 
             if (!vorhandeneSollLogs.isEmpty()) {
@@ -143,7 +163,7 @@ public class WorkLogService {
                 neuerSollLog.setDatum(datum);
                 neuerSollLog.setSollStunden(eintrag.getSollStunden());
                 neuerSollLog.setIstStunden(0.0); // Bleibt 0, um die Ist-Stunden nicht zu verfälschen
-                neuerSollLog.setBeschreibung("Monatliche Sollvorgabe");
+                neuerSollLog.setBeschreibung(SOLL_VORGABE);
                 workLogRepository.save(neuerSollLog);
             }
         }
@@ -153,4 +173,48 @@ public class WorkLogService {
     public void speichern(WorkLog workLog) { workLogRepository.save(workLog); }
     public void deleteById(Long id) { workLogRepository.deleteById(id); }
     public WorkLog findById(Long id) { return workLogRepository.findById(id).orElseThrow(); }
+
+
+    /**
+     * Prüft, ob ein Datum für den Studenten gesperrt ist.
+     * Erlaubt ist der laufende Monat sowie der direkte Vormonat.
+     */
+    /** Diese Beschreibungen nutzt das System intern – Studenten dürfen sie nicht selbst verwenden. */
+    public boolean istReservierteBeschreibung(String beschreibung) {
+        if (beschreibung == null) return false;
+        String b = beschreibung.trim();
+        return b.equalsIgnoreCase(SOLL_VORGABE) || b.equalsIgnoreCase(GESAMTEINGABE);
+    }
+
+    /**
+     * Liefert den letzten Monat (1-12) des aktuellen Jahres, der für Studenten gesperrt ist.
+     * 0 = im aktuellen Jahr ist noch kein Monat gesperrt (z.B. im Januar und Februar).
+     */
+    public int letzterGesperrterMonatImJahr() {
+        LocalDate heute = LocalDate.now();
+        int gesperrt = 0;
+        for (int m = 1; m <= 12; m++) {
+            if (isMonatGesperrt(LocalDate.of(heute.getYear(), m, 1))) gesperrt = m;
+        }
+        return gesperrt;
+    }
+
+    public boolean isMonatGesperrt(LocalDate datum) {
+        if (datum == null) return true;
+
+        LocalDate heute = LocalDate.now();
+
+        // Den ersten Tag des aktuellen Monats ermitteln
+        LocalDate aktuellerMonatStart = heute.withDayOfMonth(1);
+
+        // Den ersten Tag des Vormonats ermitteln
+        LocalDate vormonatStart = aktuellerMonatStart.minusMonths(1);
+
+        // Das Datum des Logs auf den Monatsanfang normalisieren, um den Monat zu vergleichen
+        LocalDate logMonatStart = datum.withDayOfMonth(1);
+
+        // Wenn das Log älter als der Vormonat ist -> GESPERRT!
+        return logMonatStart.isBefore(vormonatStart);
+    }
+
 }

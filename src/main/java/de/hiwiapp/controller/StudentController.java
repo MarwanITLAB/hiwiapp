@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -47,6 +49,35 @@ public class StudentController {
         WorkLog heuteLog = new WorkLog();
         heuteLog.setDatum(LocalDate.now());
         model.addAttribute("workLog", heuteLog);
+
+        // --- Werte für die Handy-Ansicht ---
+        LocalDate heute = LocalDate.now();
+        model.addAttribute("heute", heute);
+        model.addAttribute("gestern", heute.minusDays(1));
+        model.addAttribute("minDatum", heute.withDayOfMonth(1).minusMonths(1)); // frühestes erlaubtes Datum (Monatssperre)
+
+        // Aktueller Monat: Ist, Soll und Stand (kumulierter Übertrag bis heute)
+        var monat = dashboardDaten.getMonate().get(heute.getMonthValue() - 1);
+        model.addAttribute("monatName", monat.getMonatName());
+        model.addAttribute("monatIst", monat.getSummeIst());
+        model.addAttribute("monatSoll", monat.getSummeSoll());
+        model.addAttribute("standHeute", monat.getUebertrag());
+
+        // Letzte 5 echte Arbeitstage (ohne interne Sammel-/Soll-Einträge)
+        List<WorkLog> echteEintraege = workLogService.findByUser(student).stream()
+                .filter(l -> !workLogService.istReservierteBeschreibung(l.getBeschreibung()))
+                .sorted(Comparator.comparing(WorkLog::getDatum).reversed()
+                        .thenComparing(WorkLog::getId, Comparator.reverseOrder()))
+                .toList();
+        model.addAttribute("letzteEintraege", echteEintraege.stream().limit(5).toList());
+
+        // Vorschläge für "Tätigkeit" = die zuletzt benutzten Beschreibungen (ohne Doppelte)
+        model.addAttribute("letzteTaetigkeiten", echteEintraege.stream()
+                .map(WorkLog::getBeschreibung)
+                .filter(b -> b != null && !b.isBlank())
+                .distinct().limit(6).toList());
+
+        model.addAttribute("kurzDatum", DateTimeFormatter.ofPattern("EE, dd.MM.", Locale.GERMAN));
 
         return "student/dashboard";
     }
@@ -91,6 +122,8 @@ public class StudentController {
 
         List<WorkLog> logsInMonat = workLogService.findByUser(student).stream()
                 .filter(log -> log.getDatum().format(monthFormatter).equalsIgnoreCase(monatName))
+                .filter(log -> !WorkLogService.SOLL_VORGABE.equals(log.getBeschreibung())) // interne Soll-Einträge nicht anzeigen
+                .sorted(Comparator.comparing(WorkLog::getDatum))
                 .toList();
 
         double netto = logsInMonat.stream()
@@ -103,8 +136,20 @@ public class StudentController {
         model.addAttribute("totalNetto", netto);
         model.addAttribute("totalBrutto", netto * 1.08); // Brutto-Logik nur in der Übersicht
         model.addAttribute("isBetreuer", false);
-        // Darf der Student in diesem Monat noch löschen? (gleiche Regel wie beim Eintragen)
-        model.addAttribute("monatGesperrt", !logsInMonat.isEmpty() && workLogService.isMonatGesperrt(logsInMonat.get(0).getDatum()));
+        model.addAttribute("kurzDatum", DateTimeFormatter.ofPattern("EE, dd.MM.", Locale.GERMAN));
+
+        // Vor-/Folgemonat für die Blätter-Pfeile und Sperre des angezeigten Monats
+        try {
+            YearMonth ym = YearMonth.parse(monatName, monthFormatter);
+            model.addAttribute("vorMonat", ym.minusMonths(1).format(monthFormatter));
+            if (!ym.plusMonths(1).isAfter(YearMonth.now())) {
+                model.addAttribute("naechsterMonat", ym.plusMonths(1).format(monthFormatter));
+            }
+            // Darf der Student in diesem Monat noch löschen? (gleiche Regel wie beim Eintragen)
+            model.addAttribute("monatGesperrt", workLogService.isMonatGesperrt(ym.atDay(1)));
+        } catch (Exception e) {
+            model.addAttribute("monatGesperrt", true);
+        }
 
         return "student/monat-detail";
     }
@@ -134,7 +179,9 @@ public class StudentController {
         model.addAttribute("isBetreuer", false);
         model.addAttribute("studentId", student.getId());
         model.addAttribute("gesperrtBisMonat", workLogService.letzterGesperrterMonatImJahr());
-        return "student/stunden-bearbeiten";
+        model.addAttribute("jahr", LocalDate.now().getYear());
+        model.addAttribute("aktuellerMonat", LocalDate.now().getMonthValue());
+        return "student/jahr"; // eigene, handyfreundliche Ansicht für Studenten
     }
 
     /**
@@ -152,7 +199,7 @@ public class StudentController {
                 .toList();
 
         workLogService.aktualisiereMonatsSummen(student, erlaubt);
-        return "redirect:/student/dashboard?success";
+        return "redirect:/student/bearbeiten?success";
     }
 
     @GetMapping("/aktueller-monat")

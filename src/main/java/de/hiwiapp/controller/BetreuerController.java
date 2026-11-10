@@ -33,7 +33,22 @@ public class BetreuerController {
     }
 
     @GetMapping("/dashboard")
-    public String showDashboard() {
+    public String showDashboard(Model model) {
+        // Alle Hiwis mit ihrem Stand bis heute – größtes Minus zuerst
+        List<MasterEintrag> liste = userService.findAll().stream()
+                .filter(u -> u.getRole() == Role.STUDENT)
+                .map(s -> new MasterEintrag(s, workLogService.getDashboardDaten(s)))
+                .sorted(Comparator.comparingDouble(MasterEintrag::getStandHeute))
+                .collect(Collectors.toList());
+
+        long imMinus = liste.stream().filter(MasterEintrag::isImMinus).count();
+        double summeMinus = liste.stream().filter(MasterEintrag::isImMinus)
+                .mapToDouble(MasterEintrag::getStandHeute).sum();
+
+        model.addAttribute("hiwis", liste);
+        model.addAttribute("anzahlHiwis", liste.size());
+        model.addAttribute("anzahlImMinus", imMinus);
+        model.addAttribute("summeMinus", summeMinus);
         return "betreuer/dashboard";
     }
 
@@ -127,6 +142,8 @@ public class BetreuerController {
 
         List<WorkLog> logsInMonat = workLogService.findByUser(student).stream()
                 .filter(log -> log.getDatum().format(monthFormatter).equalsIgnoreCase(monatName))
+                .filter(log -> !WorkLogService.SOLL_VORGABE.equals(log.getBeschreibung())) // interne Soll-Einträge ausblenden
+                .sorted(Comparator.comparing(WorkLog::getDatum))
                 .collect(Collectors.toList());
 
         double netto = logsInMonat.stream()
@@ -139,6 +156,7 @@ public class BetreuerController {
         model.addAttribute("totalNetto", netto);
         model.addAttribute("isBetreuer", true);
         model.addAttribute("monatGesperrt", false);
+        model.addAttribute("kurzDatum", DateTimeFormatter.ofPattern("EE, dd.MM.", Locale.GERMAN));
 
         return "student/monat-detail";
     }

@@ -21,6 +21,7 @@ Ausfüllen:
   (Google-Konto → Sicherheit → 2-Faktor-Authentifizierung → App-Passwörter)
 - `APP_ADMIN_PASSWORD` – Passwort für das erste Admin-Konto
 - `APP_DEMO_USERS=false` – keine Test-Konten mit Passwort 123
+- `REMEMBER_ME_KEY` – lange Zufallszeichenkette für "Angemeldet bleiben" (`openssl rand -hex 32`)
 
 Die `.env` steht in `.gitignore` und darf **nie** nach Git.
 

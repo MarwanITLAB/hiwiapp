@@ -2,95 +2,76 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Mein Profil | HiwiApp</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Profil | HiwiApp</title>
+    <th:block th:replace="~{fragments/layout :: appHead}"></th:block>
     <style>
-        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
-        .navbar { background-color: #212529; }
-        .profile-card { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .avatar-circle {
-            width: 100px;
-            height: 100px;
-            background-color: #ffc107;
-            color: #212529;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            font-size: 2.5rem;
-            margin: 0 auto 20px auto;
+        .seite { max-width: 720px; }
+        .person { display: flex; align-items: center; gap: 16px; padding: 18px; }
+        .avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 700;
+                  display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+        .person .name { font-size: 1.15rem; font-weight: 600; }
+        .person .sub { color: var(--grau); font-size: .9rem; }
+        .daten { margin: 0; }
+        .daten div { display: grid; grid-template-columns: 180px 1fr; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--linie); }
+        .daten div:last-child { border-bottom: none; }
+        .daten dt { color: var(--grau); font-size: .9rem; }
+        .daten dd { margin: 0; font-weight: 500; word-break: break-word; }
+        .hinweis-box { padding: 14px 18px; font-size: .9rem; color: var(--grau); }
+        .hinweis-box b { color: var(--text); }
+        @media (max-width: 760px) {
+            .daten div { grid-template-columns: 1fr; gap: 2px; }
         }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark shadow-sm mb-4">
-    <div class="container-fluid px-4">
-        <span class="navbar-brand fw-bold text-info">HIWI<span class="text-white">APP</span></span>
-        <a th:href="@{/student/dashboard}" class="btn btn-outline-light btn-sm">
-            <i class="bi bi-arrow-left me-1"></i> Zum Dashboard
-        </a>
-    </div>
-</nav>
+<header th:replace="~{fragments/layout :: kopf('profil')}"></header>
 
-<main class="container" style="max-width: 600px;">
-    <div class="card profile-card shadow p-4 text-center bg-white">
+<main class="seite">
+    <h1 class="seitentitel">Profil</h1>
+    <p class="untertitel">Deine hinterlegten Daten. Änderungen bitte über deinen Betreuer.</p>
 
-        <div class="avatar-circle shadow-sm">
-            <i class="bi bi-person-fill"></i>
-        </div>
-
-        <h3 class="fw-bold mb-1" th:text="${user.vorname + ' ' + user.nachname}">Max Mustermann</h3>
-        <p class="text-muted small mb-4">Studentische Hilfskraft</p>
-
-        <hr>
-
-        <div class="text-start mt-3">
-            <h5 class="fw-bold text-primary mb-3"><i class="bi bi-card-text me-2"></i>Persönliche Daten & Vertrag</h5>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="text-muted small d-block">Benutzername</label>
-                    <span class="fw-semibold fs-5" th:text="${user.username}">max.mustermann</span>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="text-muted small d-block">E-Mail-Adresse</label>
-                    <span class="fw-semibold fs-5" th:text="${user.email != null and !user.email.isEmpty() ? user.email : 'Keine E-Mail hinterlegt'}">max@uni-beispiel.de</span>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="text-muted small d-block">Telefon</label>
-                    <span class="fw-semibold fs-5" th:text="${user.telefon != null and !user.telefon.isEmpty() ? user.telefon : 'Nicht hinterlegt'}">-</span>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="text-muted small d-block">Geburtsdatum</label>
-                    <span class="fw-semibold fs-5" th:text="${user.geburtsdatum != null ? #temporals.format(user.geburtsdatum, 'dd.MM.yyyy') : 'Nicht hinterlegt'}">-</span>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="text-muted small d-block">Anschrift</label>
-                <span class="fw-semibold fs-5" th:text="${user.anschrift != null and !user.anschrift.isEmpty() ? user.anschrift : 'Keine Anschrift hinterlegt'}">-</span>
-            </div>
-
-            <hr>
-
-            <div class="mb-3">
-                <label class="text-muted small d-block">Standard-Sollstunden (Vertrag)</label>
-                <span class="badge bg-primary fs-6" th:text="${user.sollStunden != null ? user.sollStunden + ' Std. / Monat' : 'Nicht definiert'}">40 Std. / Monat</span>
-                <p class="text-muted mt-1 mb-0" style="font-size: 0.8rem;">
-                    <i class="bi bi-info-circle me-1"></i>Hinweis: Dein Betreuer kann diese Stunden in der Jahresübersicht für einzelne Monate anpassen.
-                </p>
+    <section class="box" style="margin-bottom:16px">
+        <div class="person">
+            <div class="avatar"
+                 th:text="${(user.vorname != null and !user.vorname.isEmpty() ? user.vorname.substring(0,1) : '') + (user.nachname != null and !user.nachname.isEmpty() ? user.nachname.substring(0,1) : '')}">MM</div>
+            <div>
+                <div class="name" th:text="${(user.vorname ?: '') + ' ' + (user.nachname ?: '')}">Max Mustermann</div>
+                <div class="sub">Studentische Hilfskraft</div>
             </div>
         </div>
+    </section>
 
-    </div>
+    <section class="box" style="margin-bottom:16px">
+        <div class="box-kopf">Persönliche Daten</div>
+        <dl class="daten">
+            <div><dt>Benutzername</dt><dd th:text="${user.username}">max.mustermann</dd></div>
+            <div><dt>E-Mail</dt><dd th:text="${user.email != null and !user.email.isEmpty() ? user.email : 'nicht hinterlegt'}">-</dd></div>
+            <div><dt>Telefon</dt><dd th:text="${user.telefon != null and !user.telefon.isEmpty() ? user.telefon : 'nicht hinterlegt'}">-</dd></div>
+            <div><dt>Geburtsdatum</dt><dd th:text="${user.geburtsdatum != null ? #temporals.format(user.geburtsdatum, 'dd.MM.yyyy') : 'nicht hinterlegt'}">-</dd></div>
+            <div><dt>Anschrift</dt><dd th:text="${user.anschrift != null and !user.anschrift.isEmpty() ? user.anschrift : 'nicht hinterlegt'}">-</dd></div>
+        </dl>
+    </section>
+
+    <section class="box" style="margin-bottom:16px">
+        <div class="box-kopf">Vertrag</div>
+        <dl class="daten">
+            <div><dt>Soll-Stunden pro Monat</dt>
+                <dd th:text="${user.sollStunden != null ? #numbers.formatDecimal(user.sollStunden, 1, 1, 'COMMA') + ' h' : 'nicht festgelegt'}">30,0 h</dd></div>
+        </dl>
+        <div class="hinweis-box">Dein Betreuer kann das Soll für einzelne Monate abweichend festlegen.</div>
+    </section>
+
+    <section class="box">
+        <div class="box-kopf">HiwiApp als App auf dem Handy</div>
+        <div class="hinweis-box">
+            <b>iPhone:</b> In Safari auf <i class="bi bi-box-arrow-up"></i> „Teilen“ tippen → „Zum Home-Bildschirm“.<br>
+            <b>Android:</b> In Chrome auf <i class="bi bi-three-dots-vertical"></i> tippen → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.
+        </div>
+    </section>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<nav th:replace="~{fragments/layout :: tabbar('profil')}"></nav>
 </body>
 </html>

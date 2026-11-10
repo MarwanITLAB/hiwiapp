@@ -2,106 +2,77 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HiwiApp | Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Anmelden | HiwiApp</title>
+    <th:block th:replace="~{fragments/layout :: appHead}"></th:block>
     <style>
-        :root {
-            --excel-border: #dee2e6;
-            --excel-header: #f8f9fa;
-            --admin-gray: #495057;
-        }
-        body {
-            background-color: #f1f3f5; /* Das gleiche Grau wie die Dashboard-Sidebar */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-card {
-            width: 100%;
-            max-width: 380px;
-            padding: 30px;
-            border: 1px solid var(--excel-border);
-            border-radius: 0; /* Eckig für den Tabellen-Look */
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .login-header {
-            border-bottom: 2px solid var(--admin-gray);
-            margin-bottom: 25px;
-            padding-bottom: 10px;
-        }
-        .form-control {
-            border-radius: 0; /* Eckige Inputs passen besser zu Excel-Zellen */
-            border: 1px solid var(--excel-border);
-        }
-        .form-control:focus {
-            border-color: var(--admin-gray);
-            box-shadow: none;
-        }
-        .btn-login {
-            background-color: var(--admin-gray);
-            border-color: var(--admin-gray);
-            color: white;
-            border-radius: 0;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .btn-login:hover {
-            background-color: #343a40;
-            border-color: #343a40;
-        }
-        .alert {
-            border-radius: 0;
-            font-size: 0.9rem;
-        }
+        body { min-height: 100vh; display: flex; flex-direction: column; }
+        .login-kopf { background: var(--navy); color: #fff; padding: calc(28px + env(safe-area-inset-top)) 20px 64px; text-align: center; }
+        .login-kopf img { width: 56px; height: 56px; border-radius: 14px; display: block; margin: 0 auto 12px; }
+        .login-kopf .titel { font-size: 1.35rem; font-weight: 700; letter-spacing: .02em; }
+        .login-kopf .sub { opacity: .7; font-size: .9rem; }
+        .login-box { box-sizing: border-box; width: calc(100% - 32px); max-width: 400px; margin: -40px auto 0; padding: 24px; }
+        .login-box h1 { font-size: 1.15rem; font-weight: 600; margin: 0 0 16px; }
+        .feld { margin-bottom: 14px; }
+        .feld label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 5px; }
+        .feld input { width: 100%; box-sizing: border-box; padding: 11px 12px; font: inherit; font-size: 16px;
+                      border: 1px solid #cfd4da; border-radius: 6px; background: #fff; }
+        .feld input:focus { outline: none; border-color: var(--blau); box-shadow: 0 0 0 3px rgba(47,91,211,.15); }
+        .knopf { width: 100%; padding: 12px; font: inherit; font-weight: 600; color: #fff; background: var(--blau);
+                 border: none; border-radius: 6px; cursor: pointer; margin-top: 6px; }
+        .knopf:hover { filter: brightness(.95); }
+        .meldung { font-size: .9rem; }
+        .meldung.info { background: #eef3fd; border-color: #c9d7f7; color: #1e3a8a; }
+        .fuss { text-align: center; color: var(--grau); font-size: .8rem; margin: 20px 0 24px; }
+        .bleiben { display: flex; align-items: flex-start; gap: 8px; font-size: .9rem; margin: 2px 0 10px; cursor: pointer; }
+        .bleiben input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--blau); flex-shrink: 0; }
+        .bleiben small { color: var(--grau); }
+        .hilfe { font-size: .85rem; color: var(--grau); margin-top: 14px; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="login-card">
-    <div class="login-header text-center">
-        <h4 class="fw-bold mb-0" style="letter-spacing: 2px;">HIWI-VERWALTUNG</h4>
-        <small class="text-muted">SYSTEM-ANMELDUNG</small>
-    </div>
+<div class="login-kopf">
+    <img th:src="@{/icons/icon-192.png}" alt="">
+    <div class="titel">HiwiApp</div>
+    <div class="sub">Stundenerfassung für studentische Hilfskräfte</div>
+</div>
 
-    <div th:if="${param.error}" class="alert alert-danger py-2" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i> Zugangsdaten ungültig.
-    </div>
+<main class="box login-box">
+    <h1>Anmelden</h1>
 
-    <div th:if="${param.blocked}" class="alert alert-danger py-2" role="alert">
-        <i class="bi bi-shield-exclamation me-2"></i> Ihre Eingabe enthielt unerlaubte Zeichen (HTML-Code).
+    <div th:if="${param.error}" class="meldung fehler">
+        <i class="bi bi-exclamation-triangle"></i> Benutzername oder Passwort ist falsch.
+    </div>
+    <div th:if="${param.blocked}" class="meldung fehler">
+        <i class="bi bi-shield-exclamation"></i> Ihre Eingabe enthielt unerlaubte Zeichen (HTML-Code).
         Aus Sicherheitsgründen wurden Sie abgemeldet. Der Vorgang wurde protokolliert.
     </div>
-
-    <div th:if="${param.logout}" class="alert alert-info py-2" role="alert">
-        Sie wurden erfolgreich abgemeldet.
+    <div th:if="${param.logout}" class="meldung info">
+        <i class="bi bi-check-circle"></i> Sie wurden abgemeldet.
     </div>
 
     <form th:action="@{/login}" method="post">
-        <div class="mb-3">
-            <label for="username" class="form-label small fw-bold">BENUTZERNAME</label>
-            <input type="text" id="username" name="username" class="form-control" placeholder="Benutzerkennung" required autofocus>
+        <div class="feld">
+            <label for="username">Benutzername</label>
+            <input type="text" id="username" name="username" required autofocus
+                   autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">
         </div>
-
-        <div class="mb-3">
-            <label for="password" class="form-label small fw-bold">PASSWORT</label>
-            <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+        <div class="feld">
+            <label for="password">Passwort</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
         </div>
-
-        <div class="d-grid mt-4">
-            <button type="submit" class="btn btn-login">Anmelden</button>
-        </div>
+        <label class="bleiben">
+            <input type="checkbox" name="remember-me" checked>
+            <span>Angemeldet bleiben <small>(30 Tage – nicht an fremden Geräten)</small></span>
+        </label>
+        <button type="submit" class="knopf">Anmelden</button>
     </form>
 
-    <div class="text-center mt-4 pt-3 border-top">
-        <p class="text-muted small mb-0">HiwiApp v1.0 | 2026</p>
-    </div>
-</div>
+    <div class="hilfe">Zugangsdaten vergessen? Bitte an den Betreuer wenden.</div>
+</main>
+
+<div class="fuss">HiwiApp · 2026</div>
 
 </body>
 </html>

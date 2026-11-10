@@ -12,13 +12,11 @@
         .table-card { background: white; border-radius: 12px; border: 1px solid #dee2e6; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; }
         .thead-custom { background-color: #f1f3f5; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
     </style>
+    <th:block th:replace="~{fragments/layout :: appHead}"></th:block>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark px-4 sticky-top">
-    <span class="navbar-brand fw-bold">HIWI<span class="text-info">APP</span> | Zentrale Verwaltung</span>
-    <a th:href="@{/betreuer/dashboard}" class="btn btn-outline-light btn-sm">Dashboard</a>
-</nav>
+<header th:replace="~{fragments/layout :: kopf('kontakte')}"></header>
 
 <main class="main-container">
 
@@ -292,5 +290,6 @@
     });
 </script>
 
+<nav th:replace="~{fragments/layout :: tabbar('kontakte')}"></nav>
 </body>
 </html>

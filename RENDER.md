@@ -22,6 +22,7 @@
 | `SPRING_THYMELEAF_CACHE` | `true` |
 | `TZ` | `Europe/Berlin` |
 | `JAVA_TOOL_OPTIONS` | `-XX:MaxRAMPercentage=75` |
+| `REMEMBER_ME_KEY` | eine lange, zufällige Zeichenkette (für "Angemeldet bleiben") |
 
    Achtung: Render zeigt die Adresse als `postgresql://...` – Spring braucht `jdbc:postgresql://...`
    und Benutzer/Passwort NICHT in der URL, sondern in den eigenen Feldern.

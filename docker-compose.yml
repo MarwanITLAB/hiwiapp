@@ -33,6 +33,7 @@ services:
       # Start-Benutzer: auf dem Server KEINE Test-Konten mit Passwort 123
       APP_DEMO_USERS: ${APP_DEMO_USERS:-false}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      REMEMBER_ME_KEY: ${REMEMBER_ME_KEY:-}
       TZ: Europe/Berlin
     depends_on:
       - db

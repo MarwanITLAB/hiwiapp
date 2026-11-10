@@ -1,0 +1,8 @@
+# Diese Dateien gehören NICHT ins Docker-Image
+.git
+.idea
+target
+data
+.env
+*.iml
+HELP.md

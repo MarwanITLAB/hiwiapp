@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="de">
+<!--
+    Gemeinsame Bausteine für ALLE Seiten.
+    Einbinden mit:
+      im <head>:   <th:block th:replace="~{fragments/layout :: appHead}"></th:block>
+      Kopfleiste:  <header th:replace="~{fragments/layout :: kopf('stunden')}"></header>
+      Handy-Leiste:<nav th:replace="~{fragments/layout :: tabbar('stunden')}"></nav>
+    Der Parameter "aktiv" markiert den aktuellen Menüpunkt.
+    ${rolle} und ${anzeigeName} kommen automatisch aus config/LayoutAdvice.java.
+-->
+<head>
+    <th:block th:fragment="appHead">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+        <link rel="stylesheet" th:href="@{/css/hiwiapp.css}">
+        <link rel="manifest" th:href="@{/manifest.json}">
+        <meta name="theme-color" content="#1f2a44">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="HiwiApp">
+        <link rel="apple-touch-icon" th:href="@{/icons/icon-192.png}">
+        <link rel="icon" type="image/png" th:href="@{/icons/icon-192.png}">
+    </th:block>
+</head>
+<body>
+
+<!-- ===== KOPFLEISTE (Menü hängt von der Rolle ab) ===== -->
+<header class="kopf" th:fragment="kopf(aktiv)">
+    <div class="innen">
+        <a class="marke" th:href="@{/}">HiwiApp <span>Stundenerfassung</span></a>
+
+        <nav class="hauptnav" th:if="${rolle == 'student'}">
+            <a th:href="@{/student/dashboard}" th:classappend="${aktiv == 'start'} ? 'aktiv'">Übersicht</a>
+            <a th:href="@{/student/aktueller-monat}" th:classappend="${aktiv == 'monat'} ? 'aktiv'">Aktueller Monat</a>
+            <a th:href="@{/student/bearbeiten}" th:classappend="${aktiv == 'jahr'} ? 'aktiv'">Jahresübersicht</a>
+            <a th:href="@{/student/profil}" th:classappend="${aktiv == 'profil'} ? 'aktiv'">Profil</a>
+        </nav>
+        <nav class="hauptnav" th:if="${rolle == 'betreuer'}">
+            <a th:href="@{/betreuer/dashboard}" th:classappend="${aktiv == 'start'} ? 'aktiv'">Übersicht</a>
+            <a th:href="@{/betreuer/stunden}" th:classappend="${aktiv == 'stunden'} ? 'aktiv'">Stunden aller Hiwis</a>
+            <a th:href="@{/betreuer/kontakte}" th:classappend="${aktiv == 'kontakte'} ? 'aktiv'">Hiwis &amp; Kontakte</a>
+        </nav>
+        <nav class="hauptnav" th:if="${rolle == 'admin'}">
+            <a th:href="@{/admin/users}" th:classappend="${aktiv == 'kontakte'} ? 'aktiv'">Benutzerverwaltung</a>
+            <a th:href="@{/betreuer/dashboard}" th:classappend="${aktiv == 'start'} ? 'aktiv'">Betreuer-Übersicht</a>
+            <a th:href="@{/betreuer/stunden}" th:classappend="${aktiv == 'stunden'} ? 'aktiv'">Stunden aller Hiwis</a>
+        </nav>
+
+        <div class="benutzer">
+            <span class="name">
+                <span th:text="${anzeigeName}">Max Mustermann</span>
+                <span class="rolle" th:text="${rolle == 'admin' ? 'Admin' : (rolle == 'betreuer' ? 'Betreuer' : '')}"></span>
+            </span>
+            <form th:action="@{/logout}" method="post" style="margin:0">
+                <button type="submit" class="abmelden"><i class="bi bi-box-arrow-right"></i> Abmelden</button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<!-- ===== UNTERE LEISTE AUF DEM HANDY ===== -->
+<nav class="tabbar" th:fragment="tabbar(aktiv)">
+    <th:block th:if="${rolle == 'student'}">
+        <a th:href="@{/student/dashboard}" th:classappend="${aktiv == 'start'} ? 'aktiv'"><i class="bi bi-house-door"></i>Übersicht</a>
+        <a th:href="@{/student/aktueller-monat}" th:classappend="${aktiv == 'monat'} ? 'aktiv'"><i class="bi bi-calendar3"></i>Monat</a>
+        <a th:href="@{/student/bearbeiten}" th:classappend="${aktiv == 'jahr'} ? 'aktiv'"><i class="bi bi-table"></i>Jahr</a>
+        <a th:href="@{/student/profil}" th:classappend="${aktiv == 'profil'} ? 'aktiv'"><i class="bi bi-person"></i>Profil</a>
+    </th:block>
+    <th:block th:if="${rolle == 'betreuer' or rolle == 'admin'}">
+        <a th:href="@{/betreuer/dashboard}" th:classappend="${aktiv == 'start'} ? 'aktiv'"><i class="bi bi-house-door"></i>Übersicht</a>
+        <a th:href="@{/betreuer/stunden}" th:classappend="${aktiv == 'stunden'} ? 'aktiv'"><i class="bi bi-table"></i>Stunden</a>
+        <a th:href="${rolle == 'admin'} ? @{/admin/users} : @{/betreuer/kontakte}" th:classappend="${aktiv == 'kontakte'} ? 'aktiv'"><i class="bi bi-people"></i>Hiwis</a>
+    </th:block>
+</nav>
+
+</body>
+</html>

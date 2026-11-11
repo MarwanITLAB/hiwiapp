@@ -77,10 +77,12 @@ public class HiwiappApplication {
 	}
 
 	private static String zufallsPasswort() {
+
 		String zeichen = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
 		SecureRandom r = new SecureRandom();
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < 14; i++) sb.append(zeichen.charAt(r.nextInt(zeichen.length())));
 		return sb.toString();
 	}
+
 }
